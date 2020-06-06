@@ -1,0 +1,13 @@
+{
+    "project": [
+        {
+            "author": "Michael Peters",
+            "projectName": "RustHelperBot",
+            "version": "1.0.0",
+            "description": "this project sets out to create a useful discord bot that supports my rust server game community",
+            "longDescription": "a discord bot that handles tasks related to moderation, issue reporting, server information, and faq's for my gaming community centered around Rust",
+            "githubLink": "https://github.com/michaelpeterswa/RustHelperBot",
+            "date": "06.06.2020"
+        }
+    ]
+}
