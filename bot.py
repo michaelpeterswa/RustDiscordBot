@@ -13,7 +13,10 @@ conn = sqlite3.connect("db/issues.sqlite3")
 c = conn.cursor()
 
 DEBUG = True  # debug printer
-# "CREATE TABLE IF NOT EXISTS issues (id TEXT, description TEXT, status INTEGER)"
+
+create_table_stmt = "CREATE TABLE IF NOT EXISTS issues (id TEXT, description TEXT, name TEXT, status INTEGER)"
+
+c.execute(create_table_stmt)
 
 
 def debugPrint(text, val):
@@ -53,14 +56,39 @@ async def issue(ctx, *args):
     channel = bot.get_channel(secrets.issue_channel_id)
     name = "submitted by {}".format(ctx.message.author)
     description = " ".join(args)
-    id = "ID: " + shortuuid.uuid()
+    id = shortuuid.uuid()
+
+    data = (id, description, "{}".format(ctx.message.author), 0)
+    c.execute("INSERT INTO issues VALUES (?,?,?,?)", data)
 
     embed = discord.Embed(title="🛑 Issue Report 🛑", description=name, color=0xAD0303)
-    embed.add_field(name="issue", value=id, inline=False)
+    embed.add_field(name="issue ID", value=id, inline=False)
     embed.add_field(name="description", value=description, inline=False)
     embed.set_footer(text="an admin will be with you shortly.")
+    conn.commit()
     await channel.send("Attention %s: New Issue Report " % secrets.admin_role_id)
     await channel.send(embed=embed)
+
+
+@bot.command(pass_context=True)
+async def open(ctx):
+    for row in c.execute("SELECT * FROM issues WHERE status = 0"):
+        channel = bot.get_channel(secrets.issue_channel_id)
+        embed = discord.Embed(
+            title="🛑 Issue Report 🛑", description=row[2], color=0xAD0303
+        )
+        embed.add_field(name="issue ID", value=row[0], inline=False)
+        embed.add_field(name="description", value=row[1], inline=False)
+        embed.set_footer(text="an admin will be with you shortly.")
+
+        await channel.send(embed=embed)
+
+
+@bot.command(pass_context=True)
+async def resolve(ctx, arg1, *args):
+    description = " ".join(args)
+    print(arg1)
+    print(description)
 
 
 bot.run(secrets.token)
