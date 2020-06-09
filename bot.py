@@ -6,13 +6,17 @@ import asyncio
 import requests
 import sqlite3
 import shortuuid
+import toml
 from discord.ext import commands, tasks
 
+secrets_file = "data/secrets.toml"
+secrets = toml.load(secrets_file)
+
 bot = commands.Bot(command_prefix="z-", description="zombieland")
-conn = sqlite3.connect("db/issues.sqlite3")
+conn = sqlite3.connect("data/issues.sqlite3")
 c = conn.cursor()
 
-DEBUG = True  # debug printer
+DEBUG = False  # debug printer
 
 create_table_stmt = "CREATE TABLE IF NOT EXISTS issues (id TEXT, description TEXT, name TEXT, status INTEGER)"
 
@@ -27,7 +31,7 @@ def debugPrint(text, val):
 @bot.event
 async def on_ready():
     print("We have logged in as {0.user}".format(bot))
-    bot.loop.create_task(get_battlemetrics(secrets.server))
+    bot.loop.create_task(get_battlemetrics(secrets["discord"]["server"]))
 
 
 async def get_battlemetrics(server):
@@ -53,7 +57,7 @@ async def get_battlemetrics(server):
 
 @bot.command(pass_context=True)
 async def issue(ctx, *args):
-    channel = bot.get_channel(secrets.issue_channel_id)
+    channel = bot.get_channel(secrets["discord"]["issue_channel_id"])
     name = "submitted by {}".format(ctx.message.author)
     description = " ".join(args)
     id = shortuuid.uuid()
@@ -66,16 +70,18 @@ async def issue(ctx, *args):
     embed.add_field(name="description", value=description, inline=False)
     embed.set_footer(text="an admin will be with you shortly.")
     conn.commit()
-    await channel.send("Attention %s: New Issue Report " % secrets.admin_role_string)
+    await channel.send(
+        "Attention %s: New Issue Report " % secrets["discord"]["admin_role_string"]
+    )
     new_issue = await channel.send(embed=embed)
     # await new_issue.add_reaction("✅")
 
 
 @bot.command(pass_context=True)
 async def open(ctx):
-    channel = bot.get_channel(secrets.issue_channel_id)
+    channel = bot.get_channel(secrets["discord"]["issue_channel_id"])
     author = ctx.message.author
-    if secrets.admin_role_id in [y.id for y in author.roles]:
+    if secrets["discord"]["admin_role_id"] in [y.id for y in author.roles]:
         if c.execute("SELECT * FROM issues WHERE status = 0").fetchone() != None:
             for row in c.execute("SELECT * FROM issues WHERE status = 0"):
                 name = "submitted by {}".format(row[2])
@@ -98,13 +104,13 @@ async def resolve(ctx, arg1, *args):
     result = c.fetchone()
     data = (arg1,)
     if result != None:
-        if secrets.admin_role_id in [y.id for y in author.roles]:
+        if secrets["discord"]["admin_role_id"] in [y.id for y in author.roles]:
             description = " ".join(args)
             c.execute("UPDATE issues SET status = 1 WHERE id = (?)", data)
             conn.commit()
 
             name = "resolved by {}".format(author)
-            channel = bot.get_channel(secrets.issue_channel_id)
+            channel = bot.get_channel(secrets["discord"]["issue_channel_id"])
             embed = discord.Embed(
                 title="✅ Issue Resolved ✅", description=name, color=0x00A13E
             )
@@ -120,4 +126,4 @@ async def resolve(ctx, arg1, *args):
 #   if reaction.emoji == '👍':
 
 
-bot.run(secrets.token)
+bot.run(secrets["key"]["token"])

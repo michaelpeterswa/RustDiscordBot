@@ -2,4 +2,5 @@ secrets.py
 *.pyc
 .vscode/
 __pycache__/
-db/*.sqlite3
+data/*.sqlite3
+data/secrets.toml
