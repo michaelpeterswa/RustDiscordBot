@@ -1,0 +1,4 @@
+this is the location of:
+
+    issues.sqlite3
+    secrets.toml
