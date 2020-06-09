@@ -31,28 +31,50 @@ def debugPrint(text, val):
 @bot.event
 async def on_ready():
     print("We have logged in as {0.user}".format(bot))
-    bot.loop.create_task(get_battlemetrics(secrets["discord"]["server"]))
+    bot.loop.create_task(get_battlemetrics_server(secrets["discord"]["server"]))
 
 
-async def get_battlemetrics(server):
+async def get_battlemetrics_server(server):
     while True:
         r = requests.get("https://api.battlemetrics.com/servers/%s" % server)
-        json_data = r.json()
-        current_players = json_data["data"]["attributes"]["players"]
-        game_name = "%s/50 players online" % current_players
-        offline_game_name = "server offline"
+        if r != None:
+            json_data = r.json()
+            current_players = json_data["data"]["attributes"]["players"]
+            game_name = "%s/50 players online" % current_players
+            offline_game_name = "server offline"
 
-        if json_data["data"]["attributes"]["status"] == "online":
-            debugPrint(game_name, DEBUG)
-            await bot.change_presence(
-                activity=discord.Game(name=game_name), status=discord.Status.dnd
-            )
+            if json_data["data"]["attributes"]["status"] == "online":
+                debugPrint(game_name, DEBUG)
+                await bot.change_presence(
+                    activity=discord.Game(name=game_name), status=discord.Status.dnd
+                )
+            else:
+                debugPrint(offline_game_name, DEBUG)
+                await bot.change_presence(
+                    activity=discord.Game(name=offline_game_name),
+                    status=discord.Status.dnd,
+                )
+            await asyncio.sleep(60)  # run coroutine every 60 seconds
         else:
-            debugPrint(offline_game_name, DEBUG)
-            await bot.change_presence(
-                activity=discord.Game(name=offline_game_name), status=discord.Status.dnd
-            )
-        await asyncio.sleep(60)  # run coroutine every 60 seconds
+            await asyncio.sleep(60)
+
+
+@bot.command(pass_context=True)
+async def players(ctx):
+    players_url = "https://api.battlemetrics.com/players?filter%5Bservers%5D=7182527&page%5Bsize%5D=50&filter%5Bonline%5D=true"
+    players = requests.get(players_url)
+    players_json = players.json()
+    channel = ctx.message.channel
+    str = ""
+
+    embed = discord.Embed(title="Players online:", color=0x00A13E)
+    for player in players_json["data"]:
+        debugPrint(player["attributes"]["name"], DEBUG)
+        str = str + player["attributes"]["name"] + "\n"
+
+    embed.add_field(name="Players:", value=str, inline=True)
+    embed.set_footer(text="Thanks for playing.")
+    await channel.send(embed=embed)
 
 
 @bot.command(pass_context=True)
