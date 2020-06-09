@@ -2,4 +2,4 @@ secrets.py
 *.pyc
 .vscode/
 __pycache__/
-db/
+db/*.sqlite3

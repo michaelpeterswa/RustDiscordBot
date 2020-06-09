@@ -66,29 +66,58 @@ async def issue(ctx, *args):
     embed.add_field(name="description", value=description, inline=False)
     embed.set_footer(text="an admin will be with you shortly.")
     conn.commit()
-    await channel.send("Attention %s: New Issue Report " % secrets.admin_role_id)
-    await channel.send(embed=embed)
+    await channel.send("Attention %s: New Issue Report " % secrets.admin_role_string)
+    new_issue = await channel.send(embed=embed)
+    # await new_issue.add_reaction("✅")
 
 
 @bot.command(pass_context=True)
 async def open(ctx):
-    for row in c.execute("SELECT * FROM issues WHERE status = 0"):
-        channel = bot.get_channel(secrets.issue_channel_id)
-        embed = discord.Embed(
-            title="🛑 Issue Report 🛑", description=row[2], color=0xAD0303
-        )
-        embed.add_field(name="issue ID", value=row[0], inline=False)
-        embed.add_field(name="description", value=row[1], inline=False)
-        embed.set_footer(text="an admin will be with you shortly.")
+    channel = bot.get_channel(secrets.issue_channel_id)
+    author = ctx.message.author
+    if secrets.admin_role_id in [y.id for y in author.roles]:
+        if c.execute("SELECT * FROM issues WHERE status = 0").fetchone() != None:
+            for row in c.execute("SELECT * FROM issues WHERE status = 0"):
+                name = "submitted by {}".format(row[2])
+                embed = discord.Embed(
+                    title="🛑 Issue Report 🛑", description=name, color=0xAD0303
+                )
+                embed.add_field(name="issue ID", value=row[0], inline=False)
+                embed.add_field(name="description", value=row[1], inline=False)
+                embed.set_footer(text="an admin will be with you shortly.")
 
-        await channel.send(embed=embed)
+                await channel.send(embed=embed)
+        else:
+            await channel.send("No open issues at this time ✅")
 
 
 @bot.command(pass_context=True)
 async def resolve(ctx, arg1, *args):
-    description = " ".join(args)
-    print(arg1)
-    print(description)
+    author = ctx.message.author
+    c.execute("SELECT * FROM issues WHERE status = 0")
+    result = c.fetchone()
+    data = (arg1,)
+    if result != None:
+        if secrets.admin_role_id in [y.id for y in author.roles]:
+            description = " ".join(args)
+            c.execute("UPDATE issues SET status = 1 WHERE id = (?)", data)
+            conn.commit()
+
+            name = "resolved by {}".format(author)
+            channel = bot.get_channel(secrets.issue_channel_id)
+            embed = discord.Embed(
+                title="✅ Issue Resolved ✅", description=name, color=0x00A13E
+            )
+            embed.add_field(name="issue ID", value=result[0], inline=False)
+            embed.add_field(name="description", value=description, inline=False)
+            embed.set_footer(text="Thanks for your report.")
+
+            await channel.send(embed=embed)
+
+
+# @bot.event
+# async def on_reaction_add(reaction, user):
+#   if reaction.emoji == '👍':
 
 
 bot.run(secrets.token)
