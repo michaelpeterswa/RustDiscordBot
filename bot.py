@@ -89,17 +89,21 @@ async def players(ctx):
     players = requests.get(players_url)
     if players != None:
         players_json = players.json()
-        channel = ctx.message.channel
-        str = ""
 
-        embed = discord.Embed(title="Zombieland Rust", color=0x00A13E)
-        for player in players_json["data"]:
-            debugPrint(player["attributes"]["name"], DEBUG)
-            str = str + player["attributes"]["name"] + "\n"
+        if not players_json["data"]:
+            await ctx.message.channel.send("❌ No players online")
+        else:
+            channel = ctx.message.channel
+            str = ""
 
-        embed.add_field(name="Players:", value=str, inline=True)
-        embed.set_footer(text="Thanks for playing.")
-        await channel.send(embed=embed)
+            embed = discord.Embed(title="Zombieland Rust", color=0x00A13E)
+            for player in players_json["data"]:
+                debugPrint(player["attributes"]["name"], DEBUG)
+                str = str + player["attributes"]["name"] + "\n"
+
+            embed.add_field(name="Players:", value=str, inline=True)
+            embed.set_footer(text="Thanks for playing.")
+            await channel.send(embed=embed)
 
 
 @bot.command(pass_context=True)
