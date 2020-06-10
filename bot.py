@@ -1,5 +1,5 @@
 # Michael Peters
-# 1.3.0
+# 1.3.1
 
 import secrets
 import discord
